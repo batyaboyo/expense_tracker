@@ -137,22 +137,21 @@ class Scheduler:
                 self.agents.pop(i)
                 return True
         return False
- 
- 
-   def reset(self):
-    """Reset the scheduler to its initial state"""
-    # Keep the agents but clear their stats
-    for agent in self.agents:
-        agent.status = agent.STATUS_FREE
-        agent.current_workload = 0
-        agent.assigned_customers = []
-        agent.total_service_time = 0
-        agent.service_start_time = None
+        
+    def reset(self):
+        """Reset the scheduler to its initial state"""
+        # Keep the agents but clear their stats
+        for agent in self.agents:
+            agent.status = agent.STATUS_FREE
+            agent.current_workload = 0
+            agent.assigned_customers = []
+            agent.total_service_time = 0
+            agent.service_start_time = None
     
-    # Clear all customers
-    self.customer_queue.clear()
-    self.completed_customers = []
+        # Clear all customers
+        self.customer_queue.clear()
+        self.completed_customers = []
     
-    # Reset the start time
-    self.start_time = time.time()
-    self.last_assigned_agent_index = -1
+        # Reset the start time
+        self.start_time = time.time()
+        self.last_assigned_agent_index = -1
