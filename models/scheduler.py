@@ -119,21 +119,25 @@ class Scheduler:
             "metrics": self.get_metrics(),
             "algorithm": self.algorithm
         }
+      
         
- #   def remove_agent(self, agent_id):
-#    """Remove an agent by ID, returning any assigned customers to the queue"""
-#        for i, agent in enumerate(self.agents):
-#            if agent.id == agent_id:
-#            # Check if agent has any assigned customers
-#                if agent.assigned_customers:
-#                # Return the customers to the queue
-#                    for customer in agent.assigned_customers:
-#                        customer.assigned_agent = None
-#                        customer.start_service_time = None
-#                        self.customer_queue.appendleft(customer)
-#            
-#            # Remove the agent
-#                self.agents.pop(i)
-#                return True
-#        return False
-# 
+        
+    def remove_agent(self, agent_id):
+        for i, agent in enumerate(self.agents):
+            if agent.id == agent_id:
+            # Check if agent has any assigned customers
+                if agent.assigned_customers:
+                # Return the customers to the queue
+                    for customer in agent.assigned_customers:
+                        customer.assigned_agent = None
+                        customer.start_service_time = None
+                        self.customer_queue.appendleft(customer)
+            
+            # Remove the agent
+                self.agents.pop(i)
+                return True
+        return False
+ 
+ 
+ 
+ 

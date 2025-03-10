@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Bank Resource Scheduler</h1>
+            <h1>Resource Scheduler</h1>
             <div class="control-panel">
                 <button id="start-btn" class="btn">Start Simulation</button>
                 <button id="stop-btn" class="btn">Stop Simulation</button>
@@ -30,7 +30,7 @@
                 <p id="avg-wait-time">0.00s</p>
             </div>
             <div class="metric">
-                <h3>Agent Utilization</h3>
+                <h3>Utilization</h3>
                 <p id="avg-utilization">0%</p>
             </div>
             <div class="metric">
@@ -46,13 +46,13 @@
         <div class="main-content">
             <div class="panel agents-panel">
                 <div class="panel-header">
-                    <h2>Agents</h2>
-                    <button id="add-agent-btn" class="btn-small">Add Agent</button>
+                    <h2>Tellers</h2>
+                    <button id="add-agent-btn" class="btn-small">Add Teller</button>
                 </div>
                 <div class="agent-form-container" id="agent-form-container">
                     <form id="add-agent-form" class="add-agent-form">
                         <div class="form-row">
-                            <input type="text" id="agent-name" placeholder="Agent Name" required>
+                            <input type="text" id="agent-name" placeholder="Teller Name" required>
                             <select id="agent-workload">
                                 <option value="1">Max Load: 1</option>
                                 <option value="2">Max Load: 2</option>
