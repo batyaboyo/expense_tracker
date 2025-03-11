@@ -22,7 +22,7 @@ class Simulation:
         # Initialize agents only if there are none
         if not self.scheduler.agents:
             agent_names = ["Aketch", "Muhanguzi", "Batya"]
-            for i, name in enumerate(agent_names[:2]):  # Start with fewer agents
+            for i, name in enumerate(agent_names[:3]):  # Start with fewer agents
                 self.scheduler.add_agent(Agent(name, max_workload=2))
         
         # Start customer generation thread
