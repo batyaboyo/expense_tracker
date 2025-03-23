@@ -1,0 +1,423 @@
+<!-- dashboard/templates/dashboard/reports.html -->
+{% extends 'base.html' %}
+{% block content %}
+<div class="reports-container">
+    <h1>Financial Reports</h1>
+    
+    <div class="date-filter-container">
+        <form method="GET" class="date-filter-form">
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date</label>
+                <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <button type="submit" class="btn">Update Report</button>
+        </form>
+    </div>
+    
+    <div class="summary-cards">
+        <div class="summary-card income">
+            <h3>Total Income</h3>
+            <div class="amount">${{ total_income }}</div>
+        </div>
+        <div class="summary-card expense">
+            <h3>Total Expenses</h3>
+            <div class="amount">${{ total_expense }}</div>
+        </div>
+        <div class="summary-card savings">
+            <h3>Net Savings</h3>
+            <div class="amount">${{ net_savings }}</div>
+        </div>
+        <div class="summary-card saving-rate">
+            <h3>Saving Rate</h3>
+            <div class="amount">{{ saving_rate }}%</div>
+        </div>
+    </div>
+    
+    <div class="chart-row">
+        <div class="chart-container">
+            <h3>Monthly Overview</h3>
+            <canvas id="monthlyOverviewChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Expense Breakdown</h3>
+            <canvas id="expenseBreakdownChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="data-tables">
+        <div class="data-table-container">
+            <h3>Monthly Breakdown</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Income</th>
+                        <th>Expenses</th>
+                        <th>Net Savings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in monthly_breakdown %}
+                    <tr>
+                        <td>{{ month.month }}</td>
+                        <td class="amount income">${{ month.income }}</td>
+                        <td class="amount expense">${{ month.expense }}</td>
+                        <td class="amount {% if month.net >= 0 %}positive{% else %}negative{% endif %}">
+                            ${{ month.net }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="category-tables">
+            <div class="data-table-container">
+                <h3>Top Expense Categories</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in expenses_by_category %}
+                        <tr>
+                            <td>{{ category.category__name }}</td>
+                            <td class="amount expense">${{ category.total }}</td>
+                            <td>{% if total_expense > 0 %}{{ category.total|floatformat:2|default:0.0|float_divide:total_expense|floatformat:1 }}%{% else %}0%{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="data-table-container">
+                <h3>Income Sources</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in income_by_category %}
+                        <tr>
+                            <td>{{ category.category__name }}</td>
+                            <td class="amount income">${{ category.total }}</td>
+                            <td>{% if total_income > 0 %}{{ category.total|floatformat:2|default:0.0|float_divide:total_income|floatformat:1 }}%{% else %}0%{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="transactions-container">
+        <h3>Transactions</h3>
+        <table class="data-table transactions-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr class="{{ transaction.transaction_type }}">
+                    <td>{{ transaction.date|date:"M d, Y" }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>{{ transaction.category.name }}</td>
+                    <td>{{ transaction.transaction_type|title }}</td>
+                    <td class="amount {{ transaction.transaction_type }}">${{ transaction.amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="no-data">No transactions found for this period.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Monthly overview chart
+    const monthlyLabels = {{ monthly_labels_json|safe }};
+    const monthlyIncome = {{ monthly_income_json|safe }};
+    const monthlyExpense = {{ monthly_expense_json|safe }};
+    const monthlyNet = {{ monthly_net_json|safe }};
+    
+    new Chart(document.getElementById('monthlyOverviewChart'), {
+        type: 'bar',
+        data: {
+            labels: monthlyLabels,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: monthlyIncome,
+                    backgroundColor: '#2ecc71',
+                    order: 2
+                },
+                {
+                    label: 'Expenses',
+                    data: monthlyExpense.map(val => -val),  // Negative values for expenses
+                    backgroundColor: '#e74c3c',
+                    order: 3
+                },
+                {
+                    label: 'Net Savings',
+                    data: monthlyNet,
+                    type: 'line',
+                    borderColor: '#3498db',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + Math.abs(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Expense breakdown chart
+    const expenseCategories = {{ expense_categories_json|safe }};
+    const expenseValues = {{ expense_values_json|safe }};
+    
+    new Chart(document.getElementById('expenseBreakdownChart'), {
+        type: 'pie',
+        data: {
+            labels: expenseCategories,
+            datasets: [{
+                data: expenseValues,
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                    '#FF9F40', '#8BC34A', '#EA80FC', '#4DD0E1', '#FFF176'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+    .reports-container {
+        padding: 1rem;
+    }
+    
+    .date-filter-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .date-filter-form {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .summary-cards {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px 1.5rem;
+    }
+    
+    .summary-card {
+        flex: 1;
+        min-width: 200px;
+        padding: 1.5rem;
+        margin: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    
+    .summary-card.income {
+        border-left: 4px solid var(--secondary-color);
+    }
+    
+    .summary-card.expense {
+        border-left: 4px solid var(--danger-color);
+    }
+    
+    .summary-card.savings {
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .summary-card.saving-rate {
+        border-left: 4px solid var(--warning-color);
+    }
+    
+    .amount {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 0.5rem;
+    }
+    
+    .chart-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px 1.5rem;
+    }
+    
+    .chart-container {
+        flex: 1;
+        min-width: 400px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin: 10px;
+    }
+    
+    .data-tables {
+        margin-bottom: 1.5rem;
+    }
+    
+    .data-table-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .category-tables {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+    
+    .category-tables .data-table-container {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .data-table th {
+        font-weight: bold;
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .transactions-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+    }
+    
+    .transactions-table {
+        margin-top: 1rem;
+    }
+    
+    tr.income td {
+        background-color: rgba(46, 204, 113, 0.05);
+    }
+    
+    tr.expense td {
+        background-color: rgba(231, 76, 60, 0.05);
+    }
+    
+    .amount.income {
+        color: var(--secondary-color);
+    }
+    
+    .amount.expense {
+        color: var(--danger-color);
+    }
+    
+    .amount.positive {
+        color: var(--secondary-color);
+    }
+    
+    .amount.negative {
+        color: var(--danger-color);
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+        font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+        .summary-card, .chart-container {
+            min-width: 100%;
+        }
+        
+        .date-filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .category-tables {
+            flex-direction: column;
+        }
+        
+        .category-tables .data-table-container {
+            min-width: 100%;
+        }
+    }
+</style>
+{% endblock %}
