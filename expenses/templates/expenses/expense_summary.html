@@ -1,0 +1,153 @@
+{% extends 'expenses/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Expense Summary</h3>
+            </div>
+            <div class="card-body">
+                <form id="filter-form" class="mb-4">
+                    <div class="form-row">
+                        <div class="col-md-3 mb-3">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="end_date">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="category">Category</label>
+                            <select class="form-control" id="category" name="category_id">
+                                <option value="0">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="timeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize charts with data from Django
+    const categoryData = {{ category_data|safe }};
+    const dates = {{ dates|safe }};
+    const amounts = {{ amounts|safe }};
+    
+    // Category pie chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: categoryData.map(item => item.category__name),
+            datasets: [{
+                data: categoryData.map(item => item.total),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                    '#FF9F40', '#C9CBCF', '#7FC97F', '#BEAED4', '#FDC086'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            title: {
+                display: true,
+                text: 'Expenses by Category'
+            }
+        }
+    });
+    
+    // Time series chart
+    const timeCtx = document.getElementById('timeChart').getContext('2d');
+    const timeChart = new Chart(timeCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Daily Expenses',
+                data: amounts,
+                borderColor: '#36A2EB',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            title: {
+                display: true,
+                text: 'Expenses Over Time'
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Update charts when filter form is submitted
+    document.getElementById('filter-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        const categoryId = document.getElementById('category').value;
+        
+        // Make AJAX request to get filtered data
+        fetch(`/api/expense-data/?start_date=${startDate}&end_date=${endDate}&category_id=${categoryId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update category chart
+                categoryChart.data.labels = data.category_data.map(item => item.category__name);
+                categoryChart.data.datasets[0].data = data.category_data.map(item => item.total);
+                categoryChart.update();
+                
+                // Update time chart
+                const dailyDates = data.daily_data.map(item => item.date);
+                const dailyAmounts = data.daily_data.map(item => item.total);
+                
+                timeChart.data.labels = dailyDates;
+                timeChart.data.datasets[0].data = dailyAmounts;
+                timeChart.update();
+            });
+    });
+</script>
+{% endblock %}
